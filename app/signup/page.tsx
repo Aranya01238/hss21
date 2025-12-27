@@ -101,7 +101,7 @@ function SignUpContent() {
       localStorage.setItem("newUserName", formData.name);
       setSuccess(true);
     } catch (err: any) {
-      setError("Unexpected error during signup");
+      setError(err?.message || "Unexpected error during signup");
     } finally {
       setLoading(false);
     }
