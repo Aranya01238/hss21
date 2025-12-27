@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import { HeartPulse, Menu, X } from "lucide-react";
+import { getAuth0Client, ensureAuth0CallbackHandled } from "@/lib/auth0";
 
 const NAV_LEFT = [
   { name: "About", href: "/about", size: "text-xs", weight: "font-medium" },
@@ -24,8 +25,26 @@ export function Navbar() {
   const [hoveredLink, setHoveredLink] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [userName, setUserName] = useState<string | null>(null);
 
-  useEffect(() => setIsMounted(true), []);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    async function initAuth() {
+      await ensureAuth0CallbackHandled();
+      const client = await getAuth0Client();
+      const isAuth = await client.isAuthenticated();
+      if (isAuth) {
+        const user = await client.getUser();
+        setUserName(user?.name || user?.nickname || user?.email || null);
+      } else {
+        setUserName(null);
+      }
+    }
+    initAuth();
+  }, []);
 
   if (!isMounted) return null;
 
@@ -74,6 +93,7 @@ export function Navbar() {
                 onHover={setHoveredLink}
               />
             ))}
+            <AuthButtons userName={userName} />
           </div>
 
           <button
@@ -101,6 +121,9 @@ export function Navbar() {
                   {link.name}
                 </Link>
               ))}
+              <div className="flex items-center gap-3">
+                <AuthButtons userName={userName} />
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -128,5 +151,55 @@ function NavLink({ link, isHovered, onHover }: any) {
       )}
       {link.name}
     </Link>
+  );
+}
+
+function AuthButtons({ userName }: { userName: string | null }) {
+  const [loading, setLoading] = useState(false);
+
+  return (
+    <>
+      {userName ? (
+        <>
+          <span className="px-3 py-1 text-xs font-semibold text-slate-700">
+            {userName}
+          </span>
+          <button
+            onClick={async () => {
+              setLoading(true);
+              const client = await getAuth0Client();
+              await client.logout({
+                logoutParams: {
+                  returnTo:
+                    typeof window !== "undefined"
+                      ? window.location.origin
+                      : undefined,
+                },
+              });
+              setLoading(false);
+            }}
+            className="px-4 py-2 text-xs rounded-full border border-slate-300 hover:bg-slate-100 transition"
+          >
+            {loading ? "..." : "Logout"}
+          </button>
+        </>
+      ) : (
+        <button
+          onClick={async () => {
+            setLoading(true);
+            const client = await getAuth0Client();
+            try {
+              await client.loginWithPopup();
+            } catch {
+              await client.loginWithRedirect();
+            }
+            setLoading(false);
+          }}
+          className="px-4 py-2 text-xs rounded-full bg-primary text-white hover:bg-primary/90 transition"
+        >
+          {loading ? "..." : "Login"}
+        </button>
+      )}
+    </>
   );
 }

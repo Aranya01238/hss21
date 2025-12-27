@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Navbar } from "@/components/layout/navbar"
+import { getAuth0Client } from "@/lib/auth0"
 
 export const dynamic = "force-dynamic"
 
@@ -20,10 +21,15 @@ export default function BloodInventory() {
   })
 
   useEffect(() => {
-    const role = localStorage.getItem("userRole")
-    if (role !== "hospital") {
-      router.push("/login")
+    async function guard() {
+      const role = localStorage.getItem("userRole")
+      const client = await getAuth0Client()
+      const isAuth = await client.isAuthenticated()
+      if (!isAuth || role !== "hospital") {
+        router.push("/login?portal=hospital")
+      }
     }
+    guard()
   }, [router])
 
   const updateInventory = (type: string, amount: number) => {

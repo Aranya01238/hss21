@@ -1,9 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { Navbar } from "@/components/layout/navbar"
+import { getAuth0Client } from "@/lib/auth0"
 
 export default function ReceptionistDashboard() {
+  const router = useRouter()
   const [appointments, setAppointments] = useState([
     { id: 1, patientName: "Rahul Singh", time: "10:00 AM", doctor: "Dr. Sharma", status: "Confirmed" },
     { id: 2, patientName: "Priya Patel", time: "11:00 AM", doctor: "Dr. Verma", status: "Waiting" },
@@ -13,6 +16,18 @@ export default function ReceptionistDashboard() {
   const [registrations, setRegistrations] = useState([
     { id: 1, patientName: "New Patient", phone: "9876543210", date: "Today", status: "Pending" },
   ])
+
+  useEffect(() => {
+    async function guard() {
+      const role = localStorage.getItem("userRole")
+      const client = await getAuth0Client()
+      const isAuth = await client.isAuthenticated()
+      if (!isAuth || role !== "receptionist") {
+        router.push("/login?portal=receptionist")
+      }
+    }
+    guard()
+  }, [router])
 
   return (
     <div className="min-h-screen bg-background">

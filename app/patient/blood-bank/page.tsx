@@ -1,64 +1,102 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
-import { Navbar } from "@/components/layout/navbar"
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Navbar } from "@/components/layout/navbar";
+import { getAuth0Client } from "@/lib/auth0";
 
-export const dynamic = "force-dynamic"
+export const dynamic = "force-dynamic";
 
 interface BloodBank {
-  id: number
-  name: string
-  location: string
-  distance: number
-  inventory: Record<string, number>
+  id: number;
+  name: string;
+  location: string;
+  distance: number;
+  inventory: Record<string, number>;
 }
 
 export default function BloodBank() {
-  const router = useRouter()
-  const [banks, setBanks] = useState<BloodBank[]>([])
-  const [selectedType, setSelectedType] = useState("")
+  const router = useRouter();
+  const [banks, setBanks] = useState<BloodBank[]>([]);
+  const [selectedType, setSelectedType] = useState("");
 
   useEffect(() => {
-    const role = localStorage.getItem("userRole")
-    if (role !== "patient") {
-      router.push("/login")
-    } else {
+    async function guard() {
+      const role = localStorage.getItem("userRole");
+      const client = await getAuth0Client();
+      const isAuth = await client.isAuthenticated();
+      const user = isAuth ? await client.getUser() : null;
+      if (!isAuth || role !== "patient" || !user?.email_verified) {
+        router.push("/login?portal=user");
+        return;
+      }
       const mockBanks: BloodBank[] = [
         {
           id: 1,
           name: "Central Blood Bank",
           location: "District Hospital",
           distance: 15,
-          inventory: { "O+": 10, "O-": 4, "A+": 8, "A-": 2, "B+": 6, "B-": 1, "AB+": 3, "AB-": 0 },
+          inventory: {
+            "O+": 10,
+            "O-": 4,
+            "A+": 8,
+            "A-": 2,
+            "B+": 6,
+            "B-": 1,
+            "AB+": 3,
+            "AB-": 0,
+          },
         },
         {
           id: 2,
           name: "Community Blood Center",
           location: "Town Center",
           distance: 8,
-          inventory: { "O+": 15, "O-": 5, "A+": 12, "A-": 3, "B+": 9, "B-": 2, "AB+": 4, "AB-": 1 },
+          inventory: {
+            "O+": 15,
+            "O-": 5,
+            "A+": 12,
+            "A-": 3,
+            "B+": 9,
+            "B-": 2,
+            "AB+": 4,
+            "AB-": 1,
+          },
         },
         {
           id: 3,
           name: "Regional Blood Service",
           location: "Regional Hub",
           distance: 25,
-          inventory: { "O+": 20, "O-": 8, "A+": 18, "A-": 6, "B+": 14, "B-": 5, "AB+": 7, "AB-": 3 },
+          inventory: {
+            "O+": 20,
+            "O-": 8,
+            "A+": 18,
+            "A-": 6,
+            "B+": 14,
+            "B-": 5,
+            "AB+": 7,
+            "AB-": 3,
+          },
         },
-      ]
-      setBanks(mockBanks)
+      ];
+      setBanks(mockBanks);
     }
-  }, [router])
+    guard();
+  }, [router]);
 
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
       <main className="max-w-6xl mx-auto px-4 py-12">
-        <h1 className="text-3xl font-bold text-primary mb-8">Blood Bank Locator</h1>
+        <h1 className="text-3xl font-bold text-primary mb-8">
+          Blood Bank Locator
+        </h1>
 
         <div className="mb-6">
-          <label className="block text-sm font-medium mb-2">Filter by Blood Type</label>
+          <label className="block text-sm font-medium mb-2">
+            Filter by Blood Type
+          </label>
           <select
             value={selectedType}
             onChange={(e) => setSelectedType(e.target.value)}
@@ -78,7 +116,10 @@ export default function BloodBank() {
 
         <div className="space-y-4">
           {banks.map((bank) => (
-            <div key={bank.id} className="p-6 bg-card border border-border rounded-lg">
+            <div
+              key={bank.id}
+              className="p-6 bg-card border border-border rounded-lg"
+            >
               <h3 className="text-xl font-bold mb-3">{bank.name}</h3>
               <p className="text-muted-foreground mb-4">
                 {bank.location} - {bank.distance} km away
@@ -89,11 +130,19 @@ export default function BloodBank() {
                   <div
                     key={type}
                     className={`p-3 rounded-lg text-center ${
-                      selectedType === "" || selectedType === type ? "bg-secondary" : "bg-muted opacity-50"
+                      selectedType === "" || selectedType === type
+                        ? "bg-secondary"
+                        : "bg-muted opacity-50"
                     }`}
                   >
                     <p className="font-semibold">{type}</p>
-                    <p className={`text-lg ${count > 0 ? "text-primary" : "text-destructive"}`}>{count} units</p>
+                    <p
+                      className={`text-lg ${
+                        count > 0 ? "text-primary" : "text-destructive"
+                      }`}
+                    >
+                      {count} units
+                    </p>
                   </div>
                 ))}
               </div>
@@ -106,5 +155,5 @@ export default function BloodBank() {
         </div>
       </main>
     </div>
-  )
+  );
 }

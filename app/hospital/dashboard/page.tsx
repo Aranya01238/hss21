@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Navbar } from "@/components/layout/navbar"
+import { getAuth0Client } from "@/lib/auth0"
 
 export const dynamic = "force-dynamic"
 
@@ -11,13 +12,18 @@ export default function HospitalDashboard() {
   const [hospitalName, setHospitalName] = useState("")
 
   useEffect(() => {
-    const role = localStorage.getItem("userRole")
-    const name = localStorage.getItem("userName")
-    if (role !== "hospital") {
-      router.push("/login")
-    } else {
+    async function guard() {
+      const role = localStorage.getItem("userRole")
+      const name = localStorage.getItem("userName")
+      const client = await getAuth0Client()
+      const isAuth = await client.isAuthenticated()
+      if (!isAuth || role !== "hospital") {
+        router.push("/login?portal=hospital")
+        return
+      }
       setHospitalName(name || "Hospital")
     }
+    guard()
   }, [router])
 
   const quickStats = [

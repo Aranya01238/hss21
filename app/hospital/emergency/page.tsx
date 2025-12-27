@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Navbar } from "@/components/layout/navbar"
+import { getAuth0Client } from "@/lib/auth0"
 
 export const dynamic = "force-dynamic"
 
@@ -20,10 +21,14 @@ export default function EmergencyQueue() {
   const [cases, setCases] = useState<EmergencyCase[]>([])
 
   useEffect(() => {
-    const role = localStorage.getItem("userRole")
-    if (role !== "hospital") {
-      router.push("/login")
-    } else {
+    async function guard() {
+      const role = localStorage.getItem("userRole")
+      const client = await getAuth0Client()
+      const isAuth = await client.isAuthenticated()
+      if (!isAuth || role !== "hospital") {
+        router.push("/login?portal=hospital")
+        return
+      }
       const mockCases: EmergencyCase[] = [
         {
           id: 1,
@@ -52,6 +57,7 @@ export default function EmergencyQueue() {
       ]
       setCases(mockCases)
     }
+    guard()
   }, [router])
 
   const updateStatus = (id: number, newStatus: EmergencyCase["status"]) => {

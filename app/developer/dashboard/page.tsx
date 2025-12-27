@@ -1,9 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { Navbar } from "@/components/layout/navbar"
+import { getAuth0Client } from "@/lib/auth0"
 
 export default function DeveloperDashboard() {
+  const router = useRouter()
   const [stats] = useState({
     totalUsers: 12540,
     activeHospitals: 342,
@@ -18,6 +21,18 @@ export default function DeveloperDashboard() {
     { id: 2, type: "DB", message: "Bed inventory updated", timestamp: "2024-01-15 10:29:12", status: "success" },
     { id: 3, type: "Error", message: "Blood bank sync failed", timestamp: "2024-01-15 10:25:03", status: "error" },
   ])
+
+  useEffect(() => {
+    async function guard() {
+      const role = localStorage.getItem("userRole")
+      const client = await getAuth0Client()
+      const isAuth = await client.isAuthenticated()
+      if (!isAuth || role !== "developer") {
+        router.push("/login?portal=developer")
+      }
+    }
+    guard()
+  }, [router])
 
   return (
     <div className="min-h-screen bg-background">

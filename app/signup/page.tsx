@@ -1,14 +1,22 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { Navbar } from "@/components/layout/navbar"
+import type React from "react";
+import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Navbar } from "@/components/layout/navbar";
+import { getAuth0Client } from "@/lib/auth0";
 
-export const dynamic = "force-dynamic"
+export const dynamic = "force-dynamic";
 
 export default function SignUp() {
-  const router = useRouter()
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const portal =
+    (searchParams.get("portal") as
+      | "user"
+      | "hospital"
+      | "receptionist"
+      | "developer") || "user";
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -16,67 +24,87 @@ export default function SignUp() {
     address: "",
     password: "",
     confirmPassword: "",
-  })
-  const [error, setError] = useState("")
-  const [success, setSuccess] = useState(false)
-  const [loading, setLoading] = useState(false)
+  });
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
+  if (portal !== "user") {
+    if (typeof window !== "undefined") {
+      router.replace(`/login?portal=${portal}`);
+    }
+    return null;
+  }
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]: value,
-    }))
-  }
+    }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
+    e.preventDefault();
+    setError("");
 
     // Validation
     if (!formData.name.trim()) {
-      setError("Name is required")
-      return
+      setError("Name is required");
+      return;
     }
     if (!formData.email.includes("@")) {
-      setError("Valid email is required")
-      return
+      setError("Valid email is required");
+      return;
     }
     if (formData.phone.length !== 10 || !/^\d+$/.test(formData.phone)) {
-      setError("Phone number must be 10 digits")
-      return
+      setError("Phone number must be 10 digits");
+      return;
     }
     if (!formData.address.trim()) {
-      setError("Address is required")
-      return
+      setError("Address is required");
+      return;
     }
     if (formData.password.length < 6) {
-      setError("Password must be at least 6 characters")
-      return
+      setError("Password must be at least 6 characters");
+      return;
     }
     if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match")
-      return
+      setError("Passwords do not match");
+      return;
     }
 
-    setLoading(true)
-
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    // Generate user ID (in real app, backend would do this)
-    const userId = `USER${Math.floor(Math.random() * 10000)
-      .toString()
-      .padStart(4, "0")}`
-
-    // Store in localStorage (in real app, backend would store in database)
-    localStorage.setItem("newUserId", userId)
-    localStorage.setItem("userName", formData.name)
-    localStorage.setItem("userEmail", formData.email)
-
-    setSuccess(true)
-    setLoading(false)
-  }
+    setLoading(true);
+    try {
+      setLoading(true);
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          phone: formData.phone,
+          address: formData.address,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data?.error || "Signup failed");
+        setLoading(false);
+        return;
+      }
+      localStorage.setItem("newUserId", data.userId);
+      localStorage.setItem("newUserEmail", formData.email);
+      localStorage.setItem("newUserName", formData.name);
+      setSuccess(true);
+    } catch (err: any) {
+      setError("Unexpected error during signup");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (success) {
     return (
@@ -85,17 +113,22 @@ export default function SignUp() {
         <main className="flex items-center justify-center py-12 px-4">
           <div className="w-full max-w-md bg-card border border-border rounded-lg p-8 text-center">
             <div className="text-5xl mb-4">✅</div>
-            <h1 className="text-3xl font-bold text-primary mb-4">Account Created!</h1>
+            <h1 className="text-3xl font-bold text-primary mb-4">
+              Account Created!
+            </h1>
             <p className="text-muted-foreground mb-6">
-              Your account has been successfully created. Your User ID is displayed below. Please save it for future
-              logins.
+              Your account has been successfully created. Your User ID is
+              displayed below. Please save it for future logins.
             </p>
             <div className="bg-secondary/20 border border-border rounded-lg p-4 mb-6">
               <p className="text-sm text-muted-foreground mb-2">Your User ID</p>
-              <p className="text-2xl font-bold text-primary font-mono">{localStorage.getItem("newUserId")}</p>
+              <p className="text-2xl font-bold text-primary font-mono">
+                {localStorage.getItem("newUserId")}
+              </p>
             </div>
             <p className="text-sm text-muted-foreground mb-6">
-              Use this ID along with your password to login to the User Portal.
+              Use this ID along with your password to login to the User Portal
+              after verifying your email.
             </p>
             <button
               onClick={() => router.push("/login?portal=user")}
@@ -112,7 +145,7 @@ export default function SignUp() {
           </div>
         </main>
       </div>
-    )
+    );
   }
 
   return (
@@ -121,13 +154,19 @@ export default function SignUp() {
       <main className="flex items-center justify-center py-12 px-4">
         <div className="w-full max-w-md bg-card border border-border rounded-lg p-8">
           <div className="mb-6">
-            <h1 className="text-3xl font-bold text-center mb-2">Create Account</h1>
-            <p className="text-center text-sm text-muted-foreground">User Portal Registration</p>
+            <h1 className="text-3xl font-bold text-center mb-2">
+              Create Account
+            </h1>
+            <p className="text-center text-sm text-muted-foreground">
+              User Portal Registration
+            </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-2">Full Name</label>
+              <label className="block text-sm font-medium mb-2">
+                Full Name
+              </label>
               <input
                 type="text"
                 name="name"
@@ -140,7 +179,9 @@ export default function SignUp() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Email Address</label>
+              <label className="block text-sm font-medium mb-2">
+                Email Address
+              </label>
               <input
                 type="email"
                 name="email"
@@ -153,13 +194,18 @@ export default function SignUp() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Phone Number</label>
+              <label className="block text-sm font-medium mb-2">
+                Phone Number
+              </label>
               <input
                 type="tel"
                 name="phone"
                 value={formData.phone}
                 onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, phone: e.target.value.replace(/\D/g, "").slice(0, 10) }))
+                  setFormData((prev) => ({
+                    ...prev,
+                    phone: e.target.value.replace(/\D/g, "").slice(0, 10),
+                  }))
                 }
                 placeholder="10-digit phone number"
                 maxLength={10}
@@ -195,7 +241,9 @@ export default function SignUp() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Confirm Password</label>
+              <label className="block text-sm font-medium mb-2">
+                Confirm Password
+              </label>
               <input
                 type="password"
                 name="confirmPassword"
@@ -223,7 +271,7 @@ export default function SignUp() {
 
             <button
               type="button"
-              onClick={() => router.push("/login?portal=user")}
+              onClick={() => router.push(`/login?portal=user`)}
               className="w-full px-6 py-3 border border-primary text-primary rounded-lg font-semibold hover:bg-primary/10"
             >
               Already have an account? Sign In
@@ -232,5 +280,5 @@ export default function SignUp() {
         </div>
       </main>
     </div>
-  )
+  );
 }

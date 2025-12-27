@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Navbar } from "@/components/layout/navbar"
+import { getAuth0Client } from "@/lib/auth0"
 
 export const dynamic = "force-dynamic"
 
@@ -18,10 +19,14 @@ export default function BedManagement() {
   const [beds, setBeds] = useState<Bed[]>([])
 
   useEffect(() => {
-    const role = localStorage.getItem("userRole")
-    if (role !== "hospital") {
-      router.push("/login")
-    } else {
+    async function guard() {
+      const role = localStorage.getItem("userRole")
+      const client = await getAuth0Client()
+      const isAuth = await client.isAuthenticated()
+      if (!isAuth || role !== "hospital") {
+        router.push("/login?portal=hospital")
+        return
+      }
       const mockBeds: Bed[] = [
         { id: 1, type: "Regular", status: "available" },
         { id: 2, type: "Regular", status: "occupied", patientName: "Rajesh Kumar" },
@@ -32,6 +37,7 @@ export default function BedManagement() {
       ]
       setBeds(mockBeds)
     }
+    guard()
   }, [router])
 
   const updateBedStatus = (id: number) => {
