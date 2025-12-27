@@ -32,7 +32,7 @@ export async function POST(req: Request) {
       })
       if (!tokenRes.ok) {
         const err = await tokenRes.text()
-        return NextResponse.json({ error: "Failed to get management token", details: err }, { status: 500 })
+        return NextResponse.json({ error: "Failed to get management token", details: err }, { status: 502 })
       }
       const { access_token } = await tokenRes.json()
 
@@ -59,9 +59,14 @@ export async function POST(req: Request) {
           },
         }),
       })
-      const data = await createRes.json()
+      const ct = createRes.headers.get("content-type") || ""
+      const data = ct.includes("application/json") ? await createRes.json() : await createRes.text()
       if (!createRes.ok) {
-        return NextResponse.json({ error: "Failed to create user", details: data }, { status: 400 })
+        const description =
+          typeof data === "string"
+            ? data
+            : data?.message || data?.error || data?.description || "Unknown error"
+        return NextResponse.json({ error: "Auth0 signup failed", details: description }, { status: 400 })
       }
     } else {
       // Authentication API fallback: /dbconnections/signup (no management token needed)
@@ -84,15 +89,21 @@ export async function POST(req: Request) {
           },
         }),
       })
-      const signupData = await signupRes.json()
+      const ct = signupRes.headers.get("content-type") || ""
+      const signupData = ct.includes("application/json") ? await signupRes.json() : await signupRes.text()
       if (!signupRes.ok) {
-        return NextResponse.json({ error: "Failed to create user", details: signupData }, { status: 400 })
+        const description =
+          typeof signupData === "string"
+            ? signupData
+            : signupData?.message || signupData?.error || signupData?.description || "Unknown error"
+        const statusCode = signupRes.status || 400
+        return NextResponse.json({ error: "Auth0 signup failed", details: description }, { status: statusCode })
       }
       // Auth0 may send verification email automatically depending on connection settings
     }
 
     return NextResponse.json({ ok: true, userId })
   } catch (e: any) {
-    return NextResponse.json({ error: "Unexpected error", details: e?.message }, { status: 500 })
+    return NextResponse.json({ error: "Unexpected error", details: e?.message || String(e) }, { status: 500 })
   }
 }
