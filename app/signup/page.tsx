@@ -4,7 +4,6 @@ import type React from "react";
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Navbar } from "@/components/layout/navbar";
-import { getAuth0Client } from "@/lib/auth0";
 
 export const dynamic = "force-dynamic";
 
@@ -28,12 +27,6 @@ export default function SignUp() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
-  if (portal !== "user") {
-    if (typeof window !== "undefined") {
-      router.replace(`/login?portal=${portal}`);
-    }
-    return null;
-  }
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
