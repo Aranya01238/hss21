@@ -1,13 +1,13 @@
 "use client";
 
 import type React from "react";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Navbar } from "@/components/layout/navbar";
 
 export const dynamic = "force-dynamic";
 
-export default function SignUp() {
+function SignUpContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const portal =
@@ -272,6 +272,25 @@ export default function SignUp() {
           </form>
         </div>
       </main>
+    </div>
+  );
+}
+
+export default function SignUp() {
+  return (
+    <div className="min-h-screen bg-background">
+      <Navbar />
+      <Suspense
+        fallback={
+          <main className="flex items-center justify-center py-12 px-4">
+            <div className="w-full max-w-md bg-card border border-border rounded-lg p-8 text-center">
+              Loading...
+            </div>
+          </main>
+        }
+      >
+        <SignUpContent />
+      </Suspense>
     </div>
   );
 }
