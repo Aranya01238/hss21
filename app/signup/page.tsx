@@ -82,9 +82,17 @@ function SignUpContent() {
           address: formData.address,
         }),
       });
-      const data = await res.json();
+      let data: any = null;
+      try {
+        data = await res.json();
+      } catch {
+        data = null;
+      }
       if (!res.ok) {
-        setError(data?.error || "Signup failed");
+        const message =
+          (data && (data.error || data.message)) || "Signup failed";
+        const details = data && (data.details || data.description);
+        setError(details ? `${message}: ${details}` : message);
         setLoading(false);
         return;
       }
